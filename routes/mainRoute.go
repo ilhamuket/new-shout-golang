@@ -6,6 +6,10 @@ import (
 	swaggerFiles "github.com/swaggo/files"     // swagger embed files
 	ginSwagger "github.com/swaggo/gin-swagger" // gin-swagger middleware
 	"gorm.io/gorm"
+	"new-shout-golang/controllers"
+	"new-shout-golang/middlewares"
+	"new-shout-golang/repositories"
+	"new-shout-golang/services"
 )
 
 func SetupRouter(db *gorm.DB, r *gin.Engine) {
@@ -32,4 +36,18 @@ func SetupRouter(db *gorm.DB, r *gin.Engine) {
 	// Swagger API Docs
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	sellerRepo := repositories.NewSellerRepository(db)
+	sellerService := services.NewSellerService(sellerRepo)
+	sellerController := controllers.NewSellerController(sellerService)
+
+	sellerRoutes := r.Group("/sellers")
+	// Routes with auth middleware
+	sellerRoutes.Use(middlewares.AuthMiddleware())
+	{
+		sellerRoutes.POST("/", sellerController.CreateSeller)
+		sellerRoutes.GET("/", sellerController.GetAllSellers)
+		sellerRoutes.GET("/:id", sellerController.GetSellerByID)
+		sellerRoutes.PUT("/:id", sellerController.UpdateSeller)
+		sellerRoutes.DELETE("/:id", sellerController.DeleteSeller)
+	}
 }
